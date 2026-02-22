@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FeedFlow - 系统配置</title>
+    <link rel="stylesheet" href="/v3.css">
+</head>
+<body class="page page-config">
+    <div class="container">
+        <div class="header">
+            <div>
+                <div class="eyebrow">配置中心</div>
+                <h1>系统配置</h1>
+                <p>统一管理 API、输出、文章与 RSS 源</p>
+            </div>
+            <div class="header-actions">
+                <a href="/" class="btn btn-ghost">返回首页</a>
+            </div>
+        </div>
+
+        <div class="nav tabs">
+            <button class="active" data-tab="api">API配置</button>
+            <button data-tab="output">输出配置</button>
+            <button data-tab="article">文章配置</button>
+            <button data-tab="rss">RSS源管理</button>
+        </div>
+
+        <div id="api-config" class="config-card active">
+            <h2>API配置</h2>
+            <div class="config-form">
+                <div class="form-group">
+                    <label for="api-key">API密钥</label>
+                    <input type="password" id="api-key" placeholder="请输入 OpenAI API 密钥">
+                </div>
+                <div class="form-group">
+                    <label for="api-base">API基础地址</label>
+                    <input type="text" id="api-base" placeholder="https://api.openai.com">
+                </div>
+                <div class="form-group">
+                    <label for="api-model">默认AI模型</label>
+                    <select id="api-model">
+                        <option value="default">默认模型</option>
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="zhipu">智谱AI</option>
+                        <option value="kimi">Kimi</option>
+                        <option value="anthropic">Anthropic</option>
+                        <option value="ark">方舟</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top: 20px;">
+                <button class="btn btn-primary" id="save-api-config">保存API配置</button>
+            </div>
+        </div>
+
+        <div id="output-config" class="config-card">
+            <h2>输出配置</h2>
+            <div class="config-form">
+                <div class="form-group">
+                    <label for="output-dir">文章输出目录</label>
+                    <input type="text" id="output-dir" placeholder="./output">
+                </div>
+                <div class="form-group">
+                    <label for="images-dir">图片输出目录</label>
+                    <input type="text" id="images-dir" placeholder="./images">
+                </div>
+                <div class="form-group">
+                    <label for="default-style">默认输出风格</label>
+                    <select id="default-style">
+                        <option value="jekyll">Jekyll风格</option>
+                        <option value="wechat">微信风格</option>
+                        <option value="simple">简洁风格</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top: 20px;">
+                <button class="btn btn-primary" id="save-output-config">保存输出配置</button>
+            </div>
+        </div>
+
+        <div id="article-config" class="config-card">
+            <h2>文章配置</h2>
+            <div class="config-form">
+                <div class="form-group">
+                    <label for="article-length">目标文章长度</label>
+                    <input type="number" id="article-length" min="1000" max="10000" value="6000">
+                </div>
+                <div class="form-group">
+                    <label for="articles-per-blog">每篇博客文章数量</label>
+                    <input type="number" id="articles-per-blog" min="1" max="10" value="6">
+                </div>
+                <div class="form-group">
+                    <label for="language">文章语言</label>
+                    <select id="language">
+                        <option value="zh">中文</option>
+                        <option value="en">英文</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top: 20px;">
+                <button class="btn btn-primary" id="save-article-config">保存文章配置</button>
+            </div>
+        </div>
+
+        <div id="rss-config" class="config-card">
+            <h2>RSS源管理</h2>
+            <div class="rss-list-header">
+                <div class="search-box">
+                    <input type="text" id="rss-search" placeholder="搜索RSS源...">
+                    <button class="btn btn-primary" id="search-btn">搜索</button>
+                </div>
+                <select id="category-filter">
+                    <option value="">全部分类</option>
+                </select>
+            </div>
+            <div class="rss-list">
+                <table class="rss-table" id="rss-table">
+                    <thead>
+                        <tr>
+                            <th>名称</th>
+                            <th>链接</th>
+                            <th>分类</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rss-table-body">
+                        <tr>
+                            <td colspan="3" style="text-align: center; padding: 40px;">
+                                <div class="config-hint warning">
+                                    加载中...
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="pagination" id="pagination">
+                </div>
+            </div>
+        </div>
+
+        <div id="message-container"></div>
+    </div>
+
+    <script>
+        // 状态管理
+        let currentTab = 'api';
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentCategory = '';
+        let currentSearch = '';
+
+        // DOM元素
+        const navButtons = document.querySelectorAll('.nav button');
+        const configCards = document.querySelectorAll('.config-card');
+        const messageContainer = document.getElementById('message-container');
+
+        // 配置项元素
+        const apiKeyInput = document.getElementById('api-key');
+        const apiBaseInput = document.getElementById('api-base');
+        const apiModelSelect = document.getElementById('api-model');
+        const outputDirInput = document.getElementById('output-dir');
+        const imagesDirInput = document.getElementById('images-dir');
+        const defaultStyleSelect = document.getElementById('default-style');
+        const articleLengthInput = document.getElementById('article-length');
+        const articlesPerBlogInput = document.getElementById('articles-per-blog');
+        const languageSelect = document.getElementById('language');
+        const rssSearchInput = document.getElementById('rss-search');
+        const categoryFilterSelect = document.getElementById('category-filter');
+        const rssTableBody = document.getElementById('rss-table-body');
+        const paginationContainer = document.getElementById('pagination');
+
+        // 按钮元素
+        const saveApiConfigBtn = document.getElementById('save-api-config');
+        const saveOutputConfigBtn = document.getElementById('save-output-config');
+        const saveArticleConfigBtn = document.getElementById('save-article-config');
+        const searchBtn = document.getElementById('search-btn');
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfig();
+            loadRSSFeeds();
+            loadCategories();
+            attachEventListeners();
+        });
+
+        // 附加事件监听器
+        function attachEventListeners() {
+            // 导航按钮
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tab = button.dataset.tab;
+                    switchTab(tab);
+                });
+            });
+
+            // 保存按钮
+            saveApiConfigBtn.addEventListener('click', saveApiConfig);
+            saveOutputConfigBtn.addEventListener('click', saveOutputConfig);
+            saveArticleConfigBtn.addEventListener('click', saveArticleConfig);
+            searchBtn.addEventListener('click', searchRSSFeeds);
+            rssSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchRSSFeeds();
+                }
+            });
+            categoryFilterSelect.addEventListener('change', filterByCategory);
+        }
+
+        // 切换标签页
+        function switchTab(tab) {
+            currentTab = tab;
+            navButtons.forEach(button => {
+                button.classList.remove('active');
+                if (button.dataset.tab === tab) {
+                    button.classList.add('active');
+                }
+            });
+            configCards.forEach(card => {
+                card.classList.remove('active');
+                if (card.id === tab + '-config') {
+                    card.classList.add('active');
+                }
+            });
+        }
+
+        // 显示消息
+        function showMessage(text, type = 'success') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            messageContainer.innerHTML = '';
+            messageContainer.appendChild(messageDiv);
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        // 加载配置
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+
+                // 填充API配置
+                apiKeyInput.value = config.apiKey || '';
+                apiBaseInput.value = config.apiBase || '';
+                apiModelSelect.value = config.apiModel || 'default';
+
+                // 填充输出配置
+                outputDirInput.value = config.outputDir || './output';
+                imagesDirInput.value = config.imagesDir || './images';
+                defaultStyleSelect.value = config.defaultStyle || 'jekyll';
+
+                // 填充文章配置
+                articleLengthInput.value = config.articleLength || 6000;
+                articlesPerBlogInput.value = config.articlesPerBlog || 6;
+                languageSelect.value = config.language || 'zh';
+            } catch (error) {
+                console.error('加载配置失败:', error);
+                showMessage('加载配置失败: ' + error.message, 'error');
+            }
+        }
+
+        // 保存API配置
+        async function saveApiConfig() {
+            try {
+                const config = {
+                    apiKey: apiKeyInput.value,
+                    apiBase: apiBaseInput.value,
+                    apiModel: apiModelSelect.value
+                };
+                await saveConfig(config);
+                showMessage('API配置保存成功');
+            } catch (error) {
+                console.error('保存API配置失败:', error);
+                showMessage('保存API配置失败: ' + error.message, 'error');
+            }
+        }
+
+        // 保存输出配置
+        async function saveOutputConfig() {
+            try {
+                const config = {
+                    outputDir: outputDirInput.value,
+                    imagesDir: imagesDirInput.value,
+                    defaultStyle: defaultStyleSelect.value
+                };
+                await saveConfig(config);
+                showMessage('输出配置保存成功');
+            } catch (error) {
+                console.error('保存输出配置失败:', error);
+                showMessage('保存输出配置失败: ' + error.message, 'error');
+            }
+        }
+
+        // 保存文章配置
+        async function saveArticleConfig() {
+            try {
+                const config = {
+                    articleLength: parseInt(articleLengthInput.value),
+                    articlesPerBlog: parseInt(articlesPerBlogInput.value),
+                    language: languageSelect.value
+                };
+                await saveConfig(config);
+                showMessage('文章配置保存成功');
+            } catch (error) {
+                console.error('保存文章配置失败:', error);
+                showMessage('保存文章配置失败: ' + error.message, 'error');
+            }
+        }
+
+        // 保存配置
+        async function saveConfig(configData) {
+            const currentConfig = await fetch('/api/config').then(res => res.json());
+            const fullConfig = { ...currentConfig, ...configData };
+
+            const response = await fetch('/api/config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(fullConfig)
+            });
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.message);
+            }
+        }
+
+        // 加载RSS源
+        async function loadRSSFeeds() {
+            try {
+                let url = `/api/rss-feeds/paginated?page=${currentPage}`;
+                if (currentCategory) {
+                    url += `&category=${encodeURIComponent(currentCategory)}`;
+                }
+                if (currentSearch) {
+                    url += `&search=${encodeURIComponent(currentSearch)}`;
+                }
+
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success) {
+                    totalPages = result.pagination.totalPages;
+                    displayRSSFeeds(result.data);
+                    displayPagination();
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                console.error('加载RSS源失败:', error);
+                rssTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 40px;">
+                            <div class="config-hint warning">
+                                加载失败: ${error.message}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // 显示RSS源
+        function displayRSSFeeds(feeds) {
+            if (feeds.length === 0) {
+                rssTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 40px;">
+                            <div class="config-hint warning">
+                                未找到RSS源
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            rssTableBody.innerHTML = feeds.map(feed => `
+                <tr>
+                    <td>${feed.name}</td>
+                    <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <a href="${feed.url}" target="_blank" style="color: var(--primary-color); text-decoration: none;">${feed.url}</a>
+                    </td>
+                    <td><span class="category">${feed.category}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // 显示分页
+        function displayPagination() {
+            let paginationHTML = '';
+
+            // 上一页
+            paginationHTML += `
+                <button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                    上一页
+                </button>
+            `;
+
+            // 页码
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                paginationHTML += `
+                    <button onclick="changePage(1)">1</button>
+                `;
+                if (startPage > 2) {
+                    paginationHTML += `
+                        <span style="padding: 0 8px;">...</span>
+                    `;
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `
+                    <button onclick="changePage(${i})" class="${i === currentPage ? 'active' : ''}">
+                        ${i}
+                    </button>
+                `;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    paginationHTML += `
+                        <span style="padding: 0 8px;">...</span>
+                    `;
+                }
+                paginationHTML += `
+                    <button onclick="changePage(${totalPages})">${totalPages}</button>
+                `;
+            }
+
+            // 下一页
+            paginationHTML += `
+                <button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                    下一页
+                </button>
+            `;
+
+            paginationContainer.innerHTML = paginationHTML;
+        }
+
+        // 改变页码
+        window.changePage = function(page) {
+            if (page < 1 || page > totalPages) {
+                return;
+            }
+            currentPage = page;
+            loadRSSFeeds();
+        };
+
+        // 搜索RSS源
+        function searchRSSFeeds() {
+            currentSearch = rssSearchInput.value.trim();
+            currentPage = 1;
+            loadRSSFeeds();
+        }
+
+        // 加载分类
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/categories');
+                const categories = await response.json();
+
+                categoryFilterSelect.innerHTML = `<option value="">全部分类</option>`;
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.textContent = category;
+                    categoryFilterSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('加载分类失败:', error);
+            }
+        }
+
+        // 按分类过滤
+        function filterByCategory() {
+            currentCategory = categoryFilterSelect.value;
+            currentPage = 1;
+            loadRSSFeeds();
+        }
+    </script>
+</body>
+</html>

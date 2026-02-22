@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FeedFlow - 内容聚合与生成系统</title>
+    <link rel="stylesheet" href="/v3.css">
+</head>
+<body class="page page-home">
+    <div class="container">
+        <div class="header">
+            <div>
+                <div class="eyebrow">FeedFlow V3.0</div>
+                <h1>FeedFlow</h1>
+                <p>RSS 内容聚合与技术文章生成</p>
+            </div>
+            <div class="header-actions">
+                <div class="btn btn-ghost">流程清晰 · 操作直接</div>
+            </div>
+        </div>
+
+        <div class="nav">
+            <button id="btn-upload" class="primary">
+                <strong>提取 RSS 列表</strong>
+                <span>导入 OPML / 文件并去重</span>
+            </button>
+            <button id="btn-fetch" class="primary">
+                <strong>抓取内容</strong>
+                <span>选择 RSS 源抓取最新文章</span>
+            </button>
+            <button id="btn-analyze-generate" class="primary">
+                <strong>分析 & 生成文章</strong>
+                <span>生成技术笔记风格输出</span>
+            </button>
+            <button id="btn-stats">
+                <strong>统计信息</strong>
+                <span>查看文章与分布统计</span>
+            </button>
+            <button id="btn-analysis">
+                <strong>AI 分析</strong>
+                <span>查看主题洞察与风险</span>
+            </button>
+            <button id="btn-config">
+                <strong>系统配置</strong>
+                <span>API、输出与 RSS 管理</span>
+            </button>
+            <button id="btn-cleanup" class="danger">
+                <strong>系统清理</strong>
+                <span>清理无效文件与缓存</span>
+            </button>
+        </div>
+
+
+        <!-- 文章选择区域 -->
+        <div class="articles-section" id="articles-section" style="display: none;">
+            <h3>选择要处理的文章</h3>
+            <div class="control-buttons">
+                <button id="btn-select-all">全选</button>
+                <button id="btn-deselect-all">取消全选</button>
+                <button id="btn-load-articles">加载文章</button>
+            </div>
+            <div class="articles-list" id="articles-list"></div>
+            <div class="control-buttons">
+                <button id="btn-process-selected">处理选中的文章</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="loading" id="loading">
+                <p>正在处理...</p>
+            </div>
+
+            <div class="message" id="message"></div>
+
+
+            <!-- 文章明细列表模态框 -->
+            <div id="articles-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2 id="modal-title">文章列表</h2>
+                    <div id="articles-list-container">
+                        <div class="loading" id="articles-loading">
+                            <p>正在加载文章列表...</p>
+                        </div>
+                        <div class="articles-list" id="articles-modal-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 文件上传模态框 -->
+            <div id="upload-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2 id="upload-modal-title">提取RSS列表</h2>
+                    <div id="upload-container">
+                        <div class="upload-section">
+                            <h3>文件上传</h3>
+                            <div class="upload-area">
+                                <input type="file" id="file-input" accept=".txt,.html,.xml,.json,.opml" style="display: none;">
+                                <label for="file-input" class="file-label">
+                                    <div class="upload-icon">📁</div>
+                                    <div class="upload-text">点击选择文件或拖拽文件到此处</div>
+                                    <div class="upload-hint">支持 .txt, .html, .xml, .json 格式（最大 10MB）</div>
+                                </label>
+                            </div>
+                            <div id="file-info" style="display: none; margin-top: 15px;"></div>
+                        </div>
+
+
+                        <div class="upload-section">
+                            <h3>解析结果</h3>
+                            <div id="upload-results" style="display: none;">
+                                <div class="results-summary"></div>
+                                <div class="results-list"></div>
+                                <div class="import-controls" style="margin-top: 20px;">
+                                    <button id="btn-select-all-feeds">全选</button>
+                                    <button id="btn-deselect-all-feeds">取消全选</button>
+                                    <button id="btn-import-selected">导入选中的RSS源</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="control-buttons">
+                            <button id="btn-upload-close">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RSS源选择模态框 -->
+            <div id="rss-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2 id="rss-modal-title">选择要抓取的RSS源</h2>
+                    <div id="rss-list-container">
+                        <div class="loading" id="rss-loading">
+                            <p>正在加载RSS源列表...</p>
+                        </div>
+                        <div class="rss-list" id="rss-modal-list"></div>
+                        <div class="control-buttons">
+                            <button id="btn-select-all-rss">全选</button>
+                            <button id="btn-deselect-all-rss">取消全选</button>
+                            <button id="btn-fetch-selected">抓取选中的RSS源</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 进度条 -->
+            <div id="progress-container" class="progress-container">
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+                <div class="progress-info">
+                    <span id="progress-step" class="progress-step">准备中...</span>
+                    <span id="progress-percentage" class="progress-percentage">0%</span>
+                </div>
+            </div>
+
+            <!-- 任务状态 -->
+            <div id="task-status" class="task-status">
+                <div class="task-header">
+                    <span id="task-id" class="task-id"></span>
+                    <span id="task-status-badge" class="task-status-badge pending">待处理</span>
+                </div>
+                <div id="task-steps" class="task-steps"></div>
+                <div id="task-actions" class="task-actions">
+                    <button id="btn-cancel-task" disabled>取消任务</button>
+                </div>
+            </div>
+
+            <div class="reports">
+                <h2>最近报告</h2>
+                <div class="reports-toolbar">
+                    <input type="text" id="report-search" placeholder="搜索报告（时间/文件名/数量）">
+                </div>
+                <ul class="report-list" id="report-list">
+                    <% if (reports) { %>
+                        <% reports.forEach(report => { %>
+                            <li class="report-item" data-filename="<%= report.filename %>">
+                                <div class="report-content">
+                                    <div class="filename"><%= report.filename %></div>
+                                    <div class="info">
+                                        执行时间: <%= report.startTime %> |
+                                        执行时长: <%= report.duration %> |
+                                        生成博客: <%= report.generatedBlogs %>
+                                    </div>
+                                </div>
+                                <button class="delete-report" data-filename="<%= report.filename %>">删除</button>
+                            </li>
+                        <% }) %>
+                    <% } else { %>
+                        <li class="report-item">尚未生成报告</li>
+                    <% } %>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM元素
+        const btnFetch = document.getElementById('btn-fetch');
+        const btnAnalyzeGenerate = document.getElementById('btn-analyze-generate');
+        const btnUpload = document.getElementById('btn-upload');
+        const btnStats = document.getElementById('btn-stats');
+        const btnAnalysis = document.getElementById('btn-analysis');
+        const btnCleanup = document.getElementById('btn-cleanup');
+        const btnSelectAll = document.getElementById('btn-select-all');
+        const btnDeselectAll = document.getElementById('btn-deselect-all');
+        const btnLoadArticles = document.getElementById('btn-load-articles');
+        const btnProcessSelected = document.getElementById('btn-process-selected');
+        const loading = document.getElementById('loading');
+        const message = document.getElementById('message');
+        const reportList = document.getElementById('report-list');
+        const reportSearchInput = document.getElementById('report-search');
+        const articlesSection = document.getElementById('articles-section');
+        const articlesList = document.getElementById('articles-list');
+        let runtimeDefaults = {
+            aiModel: 'default',
+            outputStyle: 'wechat',
+            outputDir: '',
+            articleCount: 1
+        };
+
+        // 文件上传相关元素
+        const uploadModal = document.getElementById('upload-modal');
+        const fileInput = document.getElementById('file-input');
+        const btnUploadClose = document.getElementById('btn-upload-close');
+        const fileInfo = document.getElementById('file-info');
+        const uploadResults = document.getElementById('upload-results');
+
+        // 进度相关元素
+        const progressContainer = document.getElementById('progress-container');
+        const progressFill = document.getElementById('progress-fill');
+        const progressStep = document.getElementById('progress-step');
+        const progressPercentage = document.getElementById('progress-percentage');
+        const taskStatus = document.getElementById('task-status');
+        const taskId = document.getElementById('task-id');
+        const taskStatusBadge = document.getElementById('task-status-badge');
+        const taskSteps = document.getElementById('task-steps');
+        const taskActions = document.getElementById('task-actions');
+        const btnCancelTask = document.getElementById('btn-cancel-task');
+
+        // 加载未处理的文章
+        async function loadUnprocessedArticles() {
+            try {
+                const response = await fetch('/api/unprocessed-articles');
+                const articles = await response.json();
+
+                articlesList.innerHTML = '';
+
+                articles.forEach(article => {
+                    const articleItem = document.createElement('div');
+                    articleItem.className = 'article-item';
+                    articleItem.innerHTML = `
+                        <input type="checkbox" value="${article.guid}" id="article-${article.guid}">
+                        <div class="article-info">
+                            <div class="article-title">${article.title}</div>
+                            <div class="article-meta">
+                                来源: ${article.source} | 发布时间: ${article.pubDate}
+                            </div>
+                        </div>
+                    `;
+
+                    const checkbox = articleItem.querySelector('input[type="checkbox"]');
+                    checkbox.addEventListener('change', () => {
+                        if (checkbox.checked) {
+                            articleItem.classList.add('selected');
+                        } else {
+                            articleItem.classList.remove('selected');
+                        }
+                    });
+
+                    articlesList.appendChild(articleItem);
+                });
+
+                articlesSection.style.display = 'block';
+            } catch (error) {
+                console.error('加载文章失败:', error);
+                showMessage('加载文章失败: ' + error.message, 'error');
+            }
+        }
+
+        // 全选所有文章
+        function selectAllArticles() {
+            const checkboxes = articlesList.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                checkbox.closest('.article-item').classList.add('selected');
+            });
+        }
+
+        // 取消全选所有文章
+        function deselectAllArticles() {
+            const checkboxes = articlesList.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                checkbox.closest('.article-item').classList.remove('selected');
+            });
+        }
+
+        // 获取选中的文章
+        function getSelectedArticles() {
+            const checkboxes = articlesList.querySelectorAll('input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(checkbox => checkbox.value);
+        }
+
+        // 显示加载状态
+        function showLoading() {
+            loading.classList.add('show');
+            progressContainer.classList.remove('show');
+            taskStatus.classList.remove('show');
+        }
+
+        // 隐藏加载状态
+        function hideLoading() {
+            loading.classList.remove('show');
+        }
+
+        // 显示进度条
+        function showProgress() {
+            loading.classList.remove('show');
+            progressContainer.classList.add('show');
+            taskStatus.classList.add('show');
+        }
+
+        // 更新进度条
+        function updateProgress(percentage, step) {
+            progressFill.style.width = `${percentage}%`;
+            progressPercentage.textContent = `${percentage}%`;
+            if (step) {
+                progressStep.textContent = step;
+            }
+        }
+
+        // 更新任务状态
+        function updateTaskStatus(task) {
+            taskId.textContent = task.id;
+            taskStatusBadge.textContent = task.status;
+            taskStatusBadge.className = `task-status-badge ${task.status}`;
+
+            // 更新任务步骤
+            taskSteps.innerHTML = '';
+            task.steps.forEach(step => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'task-step';
+                stepDiv.textContent = `${step.step}: ${step.message}`;
+                taskSteps.appendChild(stepDiv);
+            });
+
+            // 更新取消按钮状态
+            btnCancelTask.disabled = task.status === 'completed' || task.status === 'failed' || task.status === 'cancelled';
+        }
+
+        // 开始任务轮询
+        function startTaskPolling(taskId) {
+            // 清除之前的定时器
+            if (pollTimer) {
+                clearInterval(pollTimer);
+            }
+
+            // 显示进度条
+            showProgress();
+
+            // 轮询任务状态
+            pollTimer = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/tasks/${taskId}`);
+                    if (!response.ok) {
+                        throw new Error('任务状态请求失败');
+                    }
+
+                    const task = await response.json();
+                    updateTaskStatus(task);
+                    // 获取当前步骤（从steps数组中获取最后一个步骤）
+                    const currentStep = task.steps.length > 0 ? task.steps[task.steps.length - 1].step : '准备中';
+                    updateProgress(task.progress, currentStep);
+
+                    // 如果任务完成，清除定时器
+                    if (task.status === 'completed' || task.status === 'failed' || task.status === 'cancelled') {
+                        clearInterval(pollTimer);
+                        pollTimer = null;
+
+                        if (task.status === 'completed') {
+                            showMessage('任务执行成功', 'success');
+                            // 刷新统计信息和报告列表
+                            updateStats();
+                            updateReports();
+                        } else if (task.status === 'failed') {
+                            showMessage(`任务执行失败: ${task.error}`, 'error');
+                        } else if (task.status === 'cancelled') {
+                            showMessage('任务已取消', 'warning');
+                        }
+
+                        // 启用按钮
+                        enableButtons();
+                    }
+                } catch (error) {
+                    console.error('任务状态轮询失败:', error);
+                    clearInterval(pollTimer);
+                    pollTimer = null;
+                    showMessage('任务状态轮询失败', 'error');
+                    enableButtons();
+                }
+            }, 2000); // 每2秒轮询一次
+        }
+
+        // 取消任务
+        async function cancelTask() {
+            if (!taskId.textContent) {
+                showMessage('没有正在执行的任务', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/tasks/${taskId.textContent}/cancel`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error('取消任务请求失败');
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('任务已取消', 'warning');
+                } else {
+                    showMessage(`取消任务失败: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('取消任务失败:', error);
+                showMessage('取消任务失败', 'error');
+            }
+        }
+
+        // 显示消息
+        function showMessage(text, type) {
+            message.textContent = text;
+            message.className = 'message ' + type;
+        }
+
+        // 隐藏消息
+        function hideMessage() {
+            message.textContent = '';
+            message.className = 'message';
+        }
+
+        // 禁用所有按钮
+        function disableButtons() {
+            document.querySelectorAll('.nav button').forEach(btn => {
+                btn.disabled = true;
+            });
+        }
+
+        // 启用所有按钮
+        function enableButtons() {
+            document.querySelectorAll('.nav button').forEach(btn => {
+                btn.disabled = false;
+            });
+        }
+
+        // 更新统计信息
+        async function updateStats() {
+            // 统计信息已移至统计信息页面，此函数不再更新首页统计信息
+            // 如果需要查看统计信息，请访问 /stats 页面
+            console.log('统计信息已移至统计信息页面');
+        }
+
+        // 更新报告列表
+        let reportSearchTimer = null;
+
+        async function updateReports(search = '') {
+            try {
+                const url = new URL('/api/reports', window.location.origin);
+                url.searchParams.set('page', '1');
+                url.searchParams.set('pageSize', '10');
+                if (search && search.trim().length > 0) {
+                    url.searchParams.set('search', search.trim());
+                }
+                const response = await fetch(url.toString());
+                const data = await response.json();
+                const reports = Array.isArray(data) ? data : (data.items || []);
+
+                reportList.innerHTML = '';
+
+                if (reports.length === 0) {
+                    const li = document.createElement('li');
+                    li.className = 'report-item';
+                    li.textContent = '尚未生成报告';
+                    reportList.appendChild(li);
+                    return;
+                }
+
+                reports.forEach(report => {
+                    const li = document.createElement('li');
+                    li.className = 'report-item';
+                    li.dataset.filename = report.filename;
+
+                    li.innerHTML = `
+                        <div class="report-content">
+                            <div class="filename">${report.filename}</div>
+                            <div class="info">
+                                执行时间: ${report.startTime} |
+                                执行时长: ${report.duration} |
+                                生成博客: ${report.generatedBlogs}
+                            </div>
+                        </div>
+                        <button class="delete-report" data-filename="${report.filename}">删除</button>
+                    `;
+
+                    li.querySelector('.report-content').addEventListener('click', () => {
+                        showReportDetails(report.filename);
+                    });
+
+                    li.querySelector('.delete-report').addEventListener('click', (e) => {
+                        e.stopPropagation(); // 防止事件冒泡到li元素
+                        deleteReport(report.filename);
+                    });
+
+                    reportList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('更新报告列表失败:', error);
+                showMessage('更新报告列表失败: ' + error.message, 'error');
+            }
+        }
+
+        async function loadRuntimeDefaults() {
+            try {
+                const response = await fetch('/api/config');
+                if (!response.ok) {
+                    throw new Error('无法读取系统配置');
+                }
+                const config = await response.json();
+                runtimeDefaults = {
+                    aiModel: config.apiModel || 'default',
+                    outputStyle: config.defaultStyle || 'wechat',
+                    outputDir: config.outputDir || '',
+                    articleCount: Number(config.articlesPerBlog) || 1
+                };
+
+                const missing = [];
+                if (!config.apiKey) missing.push('API密钥');
+                if (!config.outputDir) missing.push('输出目录');
+                if (!config.imagesDir) missing.push('图片目录');
+                if (missing.length > 0) {
+                    showMessage(`系统配置未完整：${missing.join('、')}，请在“系统配置”中补齐`, 'error');
+                }
+            } catch (error) {
+                console.error('读取系统配置失败:', error);
+                showMessage('读取系统配置失败: ' + error.message, 'error');
+            }
+        }
+
+        // 显示报告详细内容
+        async function showReportDetails(filename) {
+            try {
+                // 将 .json 文件名替换为 .html 文件名
+                const htmlFilename = filename.replace('.json', '.html');
+
+                // 创建一个模态框来显示 HTML 报告
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+
+                const modalContent = document.createElement('div');
+                modalContent.className = 'modal-content';
+
+                const closeBtn = document.createElement('span');
+                closeBtn.className = 'close';
+                closeBtn.innerHTML = '&times;';
+                closeBtn.onclick = () => modal.style.display = 'none';
+
+                const iframe = document.createElement('iframe');
+                iframe.src = `/data/reports/${htmlFilename}`;
+                iframe.width = '100%';
+                iframe.height = '600px';
+                iframe.style.border = 'none';
+
+                modalContent.appendChild(closeBtn);
+                modalContent.appendChild(iframe);
+                modal.appendChild(modalContent);
+
+                // 点击模态框外部关闭
+                window.onclick = (event) => {
+                    if (event.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                };
+
+                document.body.appendChild(modal);
+                modal.style.display = 'block';
+
+            } catch (error) {
+                console.error('获取报告详细内容失败:', error);
+                showMessage('获取报告详细内容失败: ' + error.message, 'error');
+            }
+        }
+
+        // 删除报告
+        async function deleteReport(filename) {
+            if (!confirm('确定要删除此报告吗？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/reports/${filename}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('报告删除成功', 'success');
+                    await updateReports();
+                } else {
+                    showMessage('报告删除失败: ' + (result.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                console.error('删除报告失败:', error);
+                showMessage('删除报告失败: ' + error.message, 'error');
+            }
+        }
+
+        // 执行完整工作流
+        async function executeStart() {
+            try {
+                showLoading();
+                hideMessage();
+                disableButtons();
+
+                const options = {
+                    aiModel: runtimeDefaults.aiModel,
+                    outputStyle: runtimeDefaults.outputStyle,
+                    outputDir: runtimeDefaults.outputDir,
+                    articleCount: runtimeDefaults.articleCount
+                };
+
+                const response = await fetch('/api/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(options)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('任务已创建!', 'success');
+                    startTaskPolling(result.taskId);
+                } else {
+                    showMessage('工作流执行失败: ' + (result.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                console.error('执行完整工作流失败:', error);
+                showMessage('执行完整工作流失败: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+                enableButtons();
+            }
+        }
+
+        // 只抓取文章
+        async function executeFetch() {
+            try {
+                showLoading();
+                hideMessage();
+                disableButtons();
+
+                const response = await fetch('/api/fetch', { method: 'POST' });
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('任务已创建!', 'success');
+                    startTaskPolling(result.taskId);
+                } else {
+                    showMessage('文章抓取失败: ' + (result.message || '未知错误'), 'error');
+                    hideLoading();
+                    enableButtons();
+                }
+            } catch (error) {
+                console.error('抓取文章失败:', error);
+                showMessage('抓取文章失败: ' + error.message, 'error');
+                hideLoading();
+                enableButtons();
+            }
+        }
+
+        // 只分析文章
+        async function executeAnalyzeGenerate() {
+            try {
+                // 显示文章选择区域
+                const articlesSection = document.getElementById('articles-section');
+                articlesSection.style.display = 'block';
+                showMessage('请选择要分析和生成的文章', 'success');
+
+                // 加载未处理的文章
+                await loadUnprocessedArticles();
+            } catch (error) {
+                console.error('显示文章选择区域失败:', error);
+                showMessage('显示文章选择区域失败: ' + error.message, 'error');
+            }
+        }
+
+        // 增量更新
+
+        // 系统清理
+        async function executeCleanup() {
+            try {
+                showLoading();
+                hideMessage();
+                disableButtons();
+
+                const response = await fetch('/api/cleanup', { method: 'POST' });
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('系统清理成功!', 'success');
+                    await updateStats();
+                } else {
+                    showMessage('系统清理失败: ' + (result.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                console.error('系统清理失败:', error);
+                showMessage('系统清理失败: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+                enableButtons();
+            }
+        }
+
+        // 处理选中的文章
+        async function processSelectedArticles() {
+            try {
+                const selectedArticles = getSelectedArticles();
+
+                if (selectedArticles.length === 0) {
+                    showMessage('请至少选择一篇文章', 'error');
+                    return;
+                }
+
+                showLoading();
+                hideMessage();
+                disableButtons();
+
+                // 只传递选中的文章，其他配置使用默认值
+                const options = {
+                    selectedArticles: selectedArticles
+                };
+
+                const response = await fetch('/api/generate-article', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(options)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('任务已创建!', 'success');
+                    startTaskPolling(result.taskId);
+                } else {
+                    showMessage('文章分析和生成失败: ' + (result.message || '未知错误'), 'error');
+                    hideLoading();
+                    enableButtons();
+                }
+            } catch (error) {
+                console.error('处理选中的文章失败:', error);
+                showMessage('处理选中的文章失败: ' + error.message, 'error');
+                hideLoading();
+                enableButtons();
+            }
+        }
+
+        // 文件上传事件监听
+        btnUpload.addEventListener('click', showUploadModal);
+        btnUploadClose.addEventListener('click', closeUploadModal);
+        fileInput.addEventListener('change', handleFileSelect);
+        btnCancelTask.addEventListener('click', cancelTask);
+
+        // 导入控件事件监听
+        document.getElementById('btn-select-all-feeds').addEventListener('click', selectAllFeeds);
+        document.getElementById('btn-deselect-all-feeds').addEventListener('click', deselectAllFeeds);
+        document.getElementById('btn-import-selected').addEventListener('click', importSelectedFeeds);
+
+        // 轮询任务进度的定时器
+        let pollTimer = null;
+
+        // 事件监听
+        btnFetch.addEventListener('click', showRSSModal);
+        btnAnalyzeGenerate.addEventListener('click', executeAnalyzeGenerate);
+        btnStats.addEventListener('click', () => {
+            window.location.href = '/stats';
+        });
+        btnAnalysis.addEventListener('click', () => {
+            window.location.href = '/analysis';
+        });
+        btnCleanup.addEventListener('click', executeCleanup);
+        document.getElementById('btn-config').addEventListener('click', () => {
+            window.location.href = '/config';
+        });
+
+        if (reportSearchInput) {
+            reportSearchInput.addEventListener('input', (event) => {
+                const value = event.target.value;
+                if (reportSearchTimer) {
+                    clearTimeout(reportSearchTimer);
+                }
+                reportSearchTimer = setTimeout(() => updateReports(value), 300);
+            });
+        }
+
+        // RSS源选择模态框事件监听（移到showRSSModal函数中）
+
+        // 关闭RSS源选择模态框
+        document.querySelector('#rss-modal .close').addEventListener('click', () => {
+            document.getElementById('rss-modal').style.display = 'none';
+        });
+
+        // 点击模态框外部关闭RSS源选择模态框
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('rss-modal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+        btnSelectAll.addEventListener('click', selectAllArticles);
+        btnDeselectAll.addEventListener('click', deselectAllArticles);
+        btnLoadArticles.addEventListener('click', loadUnprocessedArticles);
+        btnProcessSelected.addEventListener('click', processSelectedArticles);
+
+        // 统计卡片点击事件已移至统计信息页面
+
+        // 页面加载时设置默认值
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadRuntimeDefaults();
+
+            // 为页面加载时渲染的删除按钮添加事件监听器
+            const deleteButtons = document.querySelectorAll('.delete-report');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation(); // 防止事件冒泡到li元素
+                    const filename = button.getAttribute('data-filename');
+                    deleteReport(filename);
+                });
+            });
+
+            // 为页面加载时渲染的报告内容添加点击事件监听器
+            const reportItems = document.querySelectorAll('.report-item');
+            reportItems.forEach(item => {
+                const reportContent = item.querySelector('.report-content');
+                if (reportContent) {
+                    reportContent.addEventListener('click', () => {
+                        const filename = item.getAttribute('data-filename');
+                        showReportDetails(filename);
+                    });
+                } else {
+                    // 如果没有 .report-content 类，直接为整个 li 元素添加点击事件
+                    if (!item.textContent.includes('尚未生成报告')) {
+                        item.addEventListener('click', () => {
+                            const filename = item.getAttribute('data-filename');
+                            showReportDetails(filename);
+                        });
+                    }
+                }
+            });
+        });
+
+        // 显示文件上传模态框
+        function showUploadModal() {
+            uploadModal.style.display = 'block';
+            // 重置表单
+            fileInput.value = '';
+            fileInfo.style.display = 'none';
+            uploadResults.style.display = 'none';
+        }
+
+        // 关闭文件上传模态框
+        function closeUploadModal() {
+            uploadModal.style.display = 'none';
+        }
+
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // 检查文件大小
+                const maxSize = 10 * 1024 * 1024; // 10MB
+                if (file.size > maxSize) {
+                    showMessage('文件大小超过限制（最大 10MB）', 'error');
+                    fileInput.value = '';
+                    return;
+                }
+
+                // 显示文件信息
+                fileInfo.textContent = `已选择文件: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                fileInfo.style.display = 'block';
+
+                // 上传文件
+                uploadFile(file);
+            }
+        }
+
+        // 上传文件
+        async function uploadFile(file) {
+            showLoading();
+            hideMessage();
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/upload-file', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    displayUploadResults(result.data);
+                } else {
+                    showMessage('文件上传失败: ' + (result.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                console.error('文件上传失败:', error);
+                showMessage('文件上传失败: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+
+        // 显示上传结果
+        function displayUploadResults(data) {
+            const summaryDiv = uploadResults.querySelector('.results-summary');
+            const listDiv = uploadResults.querySelector('.results-list');
+
+            summaryDiv.innerHTML = `
+                <p>找到 ${data.totalLinks} 个 RSS 链接，新增 ${data.newFeeds} 个源</p>
+            `;
+
+            listDiv.innerHTML = '';
+            data.feeds.forEach(feed => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'result-item';
+                itemDiv.innerHTML = `
+                    <input type="checkbox" value="${feed.url}" data-name="${feed.name}" data-category="${feed.category}" class="feed-checkbox" ${feed.isExisting ? 'disabled' : ''}>
+                    <div class="result-url">${feed.url}</div>
+                    <div class="result-info">
+                        <strong>名称:</strong> ${feed.name} | <strong>分类:</strong> ${feed.category}
+                        ${feed.isExisting ? ' | <span style="color: var(--warning-color);">已存在</span>' : ''}
+                    </div>
+                `;
+                listDiv.appendChild(itemDiv);
+
+                // 添加复选框事件监听
+                const checkbox = itemDiv.querySelector('.feed-checkbox');
+                if (!feed.isExisting) {
+                    checkbox.addEventListener('change', () => {
+                        if (checkbox.checked) {
+                            itemDiv.classList.add('selected');
+                        } else {
+                            itemDiv.classList.remove('selected');
+                        }
+                    });
+                }
+            });
+
+            uploadResults.style.display = 'block';
+        }
+
+        // 全选所有可导入的RSS源
+        function selectAllFeeds() {
+            const uploadResults = document.getElementById('upload-results');
+            const checkboxes = uploadResults.querySelectorAll('.feed-checkbox:not(:disabled)');
+            console.log('Select all - Found checkboxes:', checkboxes.length);
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                const resultItem = checkbox.closest('.result-item');
+                resultItem.classList.add('selected');
+                // 手动触发 change 事件，确保其他事件监听器被通知
+                const event = new Event('change');
+                checkbox.dispatchEvent(event);
+            });
+        }
+
+        // 取消全选所有RSS源
+        function deselectAllFeeds() {
+            const uploadResults = document.getElementById('upload-results');
+            const checkboxes = uploadResults.querySelectorAll('.feed-checkbox');
+            console.log('Deselect all - Found checkboxes:', checkboxes.length);
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                const resultItem = checkbox.closest('.result-item');
+                resultItem.classList.remove('selected');
+                // 手动触发 change 事件，确保其他事件监听器被通知
+                const event = new Event('change');
+                checkbox.dispatchEvent(event);
+            });
+        }
+
+        // 获取选中的RSS源
+        function getSelectedFeeds() {
+            const checkboxes = document.querySelectorAll('.feed-checkbox:checked:not(:disabled)');
+            return Array.from(checkboxes).map(checkbox => ({
+                url: checkbox.value,
+                name: checkbox.dataset.name,
+                category: checkbox.dataset.category
+            }));
+        }
+
+        // 导入选中的RSS源
+        async function importSelectedFeeds() {
+            const selectedFeeds = getSelectedFeeds();
+            if (selectedFeeds.length === 0) {
+                showMessage('请至少选择一个要导入的RSS源', 'error');
+                return;
+            }
+
+            showLoading();
+            hideMessage();
+
+            try {
+                const response = await fetch('/api/import-feeds', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ feeds: selectedFeeds })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`成功导入 ${result.data.importedFeeds.length} 个RSS源`, 'success');
+                    // 重置上传区域
+                    fileInput.value = '';
+                    urlInput.value = '';
+                    fileInfo.style.display = 'none';
+                    uploadResults.style.display = 'none';
+                } else {
+                    showMessage('导入失败: ' + (result.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                console.error('导入RSS源失败:', error);
+                showMessage('导入失败: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 显示RSS源选择模态框
+        async function showRSSModal() {
+            const modal = document.getElementById('rss-modal');
+            const rssListContainer = document.getElementById('rss-list-container');
+            const rssLoading = document.getElementById('rss-loading');
+            const rssModalList = document.getElementById('rss-modal-list');
+
+            // 显示加载状态
+            rssLoading.style.display = 'block';
+            rssModalList.innerHTML = '';
+
+            // 显示模态框
+            modal.style.display = 'block';
+
+            try {
+                // 加载RSS源列表（按分类分组）
+                const response = await fetch('/api/rss-feeds?grouped=true');
+                const groupedFeeds = await response.json();
+
+                // 隐藏加载状态
+                rssLoading.style.display = 'none';
+
+                // 显示RSS源列表
+                if (groupedFeeds.length === 0) {
+                    rssModalList.innerHTML = '<div class="config-hint warning">未找到RSS源</div>';
+                    return;
+                }
+
+                // 生成分类和RSS源的HTML
+                let rssHTML = '';
+                groupedFeeds.forEach(group => {
+                    rssHTML += `
+                        <div class="rss-category">
+                            <div class="category-header">
+                                <input type="checkbox" class="category-checkbox" id="category-${group.category}">
+                                <h4 class="category-title">${group.category} (${group.feeds.length})</h4>
+                                <span class="category-toggle">▼</span>
+                            </div>
+                            <div class="category-content">
+                                ${group.feeds.map(feed => `
+                                    <div class="rss-item">
+                                        <input type="checkbox" value="${feed.name}" id="rss-${feed.name}">
+                                        <div class="rss-info">
+                                            <div class="rss-name">${feed.name}</div>
+                                            <div class="rss-url">${feed.url}</div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                rssModalList.innerHTML = rssHTML;
+
+                // 为分类标题添加点击事件（折叠/展开）
+                document.querySelectorAll('.category-header').forEach(header => {
+                    const categoryTitle = header.querySelector('.category-title');
+                    const categoryToggle = header.querySelector('.category-toggle');
+                    const categoryContent = header.nextElementSibling;
+
+                    categoryTitle.addEventListener('click', () => {
+                        categoryContent.style.display = categoryContent.style.display === 'none' ? 'block' : 'none';
+                        categoryToggle.textContent = categoryContent.style.display === 'none' ? '▶' : '▼';
+                    });
+
+                    // 为分类复选框添加事件监听
+                    const categoryCheckbox = header.querySelector('.category-checkbox');
+                    categoryCheckbox.addEventListener('change', () => {
+                        const isChecked = categoryCheckbox.checked;
+                        const categoryFeeds = categoryContent.querySelectorAll('.rss-item input[type="checkbox"]');
+
+                        categoryFeeds.forEach(checkbox => {
+                            checkbox.checked = isChecked;
+                            const rssItem = checkbox.closest('.rss-item');
+                            if (isChecked) {
+                                rssItem.classList.add('selected');
+                            } else {
+                                rssItem.classList.remove('selected');
+                            }
+                        });
+                    });
+                });
+
+                // 为每个RSS源复选框添加事件监听
+                groupedFeeds.forEach(group => {
+                    group.feeds.forEach(feed => {
+                        const checkbox = document.getElementById(`rss-${feed.name}`);
+                        checkbox.addEventListener('change', () => {
+                            const rssItem = checkbox.closest('.rss-item');
+                            if (checkbox.checked) {
+                                rssItem.classList.add('selected');
+                            } else {
+                                rssItem.classList.remove('selected');
+                            }
+                        });
+                    });
+                });
+
+                // 为全选、取消全选、抓取选中按钮添加事件监听
+                document.getElementById('btn-select-all-rss').addEventListener('click', selectAllRSSFeeds);
+                document.getElementById('btn-deselect-all-rss').addEventListener('click', deselectAllRSSFeeds);
+                document.getElementById('btn-fetch-selected').addEventListener('click', fetchSelectedRSSFeeds);
+
+            } catch (error) {
+                console.error('加载RSS源列表失败:', error);
+                rssLoading.style.display = 'none';
+                rssModalList.innerHTML = `<div class="config-hint warning">加载RSS源列表失败: ${error.message}</div>`;
+            }
+        }
+
+        // 显示文章列表模态框
+        async function showArticlesList(type) {
+            const modal = document.getElementById('articles-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const articlesListContainer = document.getElementById('articles-list-container');
+            const articlesLoading = document.getElementById('articles-loading');
+            const articlesModalList = document.getElementById('articles-modal-list');
+
+            // 设置标题
+            if (type === 'all') {
+                modalTitle.textContent = '总文章列表';
+            } else if (type === 'processed') {
+                modalTitle.textContent = '已处理文章列表';
+            } else if (type === 'unprocessed') {
+                modalTitle.textContent = '未处理文章列表';
+            }
+
+            // 显示加载状态
+            articlesLoading.style.display = 'block';
+            articlesModalList.innerHTML = '';
+
+            // 显示模态框
+            modal.style.display = 'block';
+
+            try {
+                // 加载文章列表
+                let url = '';
+                if (type === 'all') {
+                    url = '/api/all-articles';
+                } else if (type === 'processed') {
+                    url = '/api/processed-articles';
+                } else if (type === 'unprocessed') {
+                    url = '/api/unprocessed-articles';
+                }
+
+                const response = await fetch(url);
+                const articles = await response.json();
+
+                // 隐藏加载状态
+                articlesLoading.style.display = 'none';
+
+                // 显示文章列表
+                if (articles.length === 0) {
+                    articlesModalList.innerHTML = '<div class="config-hint warning">未找到文章</div>';
+                    return;
+                }
+
+                const articlesHTML = articles.map(article => `
+                    <div class="article-item">
+                        <div class="article-info">
+                            <div class="article-title">${article.title}</div>
+                            <div class="article-meta">
+                                来源: ${article.source} | 发布时间: ${article.pubDate}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                articlesModalList.innerHTML = articlesHTML;
+            } catch (error) {
+                console.error('加载文章列表失败:', error);
+                articlesLoading.style.display = 'none';
+                articlesModalList.innerHTML = `<div class="config-hint warning">加载文章列表失败: ${error.message}</div>`;
+            }
+        }
+
+        // 关闭上传模态框
+        document.querySelector('#upload-modal .close').addEventListener('click', () => {
+            uploadModal.style.display = 'none';
+        });
+
+        // 点击模态框外部关闭上传模态框
+        window.addEventListener('click', (event) => {
+            if (event.target === uploadModal) {
+                uploadModal.style.display = 'none';
+            }
+        });
+
+        // 关闭模态框
+        document.querySelector('.close').addEventListener('click', () => {
+            document.getElementById('articles-modal').style.display = 'none';
+        });
+
+        // 全选所有RSS源
+        function selectAllRSSFeeds() {
+            console.log('selectAllRSSFeeds called');
+            const checkboxes = document.querySelectorAll('#rss-modal-list .rss-item input[type="checkbox"]');
+            console.log('Found checkboxes:', checkboxes.length);
+            checkboxes.forEach(checkbox => {
+                console.log('Checkbox ID:', checkbox.id);
+                checkbox.checked = true;
+                const rssItem = checkbox.closest('.rss-item');
+                rssItem.classList.add('selected');
+            });
+        }
+
+        // 取消全选所有RSS源
+        function deselectAllRSSFeeds() {
+            console.log('deselectAllRSSFeeds called');
+            const checkboxes = document.querySelectorAll('#rss-modal-list .rss-item input[type="checkbox"]');
+            console.log('Found checkboxes:', checkboxes.length);
+            checkboxes.forEach(checkbox => {
+                console.log('Checkbox ID:', checkbox.id);
+                checkbox.checked = false;
+                const rssItem = checkbox.closest('.rss-item');
+                rssItem.classList.remove('selected');
+            });
+        }
+
+        // 获取选中的RSS源
+        function getSelectedRSSFeeds() {
+            const checkboxes = document.querySelectorAll('#rss-modal-list input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(checkbox => checkbox.value);
+        }
+
+        // 抓取选中的RSS源
+        async function fetchSelectedRSSFeeds() {
+            const selectedFeeds = getSelectedRSSFeeds();
+            if (selectedFeeds.length === 0) {
+                showMessage('请至少选择一个RSS源', 'error');
+                return;
+            }
+
+            showLoading();
+            hideMessage();
+            disableButtons();
+
+            try {
+                const response = await fetch('/api/fetch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ selectedFeeds })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('任务已创建', 'success');
+                    startTaskPolling(result.taskId);
+                    document.getElementById('rss-modal').style.display = 'none';
+                } else {
+                    showMessage('RSS源抓取失败: ' + result.message, 'error');
+                    hideLoading();
+                    enableButtons();
+                }
+            } catch (error) {
+                console.error('抓取RSS源失败:', error);
+                showMessage('抓取RSS源失败: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+                enableButtons();
+            }
+        }
+
+        // 点击模态框外部关闭
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('articles-modal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

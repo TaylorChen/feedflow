@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FeedFlow - AI 分析详情</title>
+    <link rel="stylesheet" href="/v3.css">
+</head>
+<body class="page page-analysis">
+    <div class="container">
+        <nav class="navbar">
+            <div class="navbar-content">
+                <a href="/" class="navbar-brand">
+                    <span>🧠</span>
+                    <span>FeedFlow</span>
+                </a>
+                <ul class="navbar-nav">
+                    <li><a href="/">首页</a></li>
+                    <li><a href="/stats">统计信息</a></li>
+                    <li><a href="/analysis" class="active">AI 分析</a></li>
+                    <li><a href="/config">系统配置</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <div class="page-header">
+            <div class="eyebrow">AI 分析详情</div>
+            <h1 class="page-title">技术主题洞察与风险</h1>
+            <p class="page-subtitle">来自最新报告的结构化分析摘要</p>
+        </div>
+
+        <% if (error) { %>
+            <div class="error">
+                <strong>错误:</strong> <%= error %>
+            </div>
+        <% } %>
+
+        <% if (analysisResults && analysisResults.length > 0) { %>
+            <% analysisResults.forEach(item => { %>
+                <div class="panel" style="margin-bottom: 18px;">
+                    <div class="section-title"><%= item.title %></div>
+                    <% if (item.analysis && item.analysis.summary) { %>
+                        <p><strong>总结:</strong> <%= item.analysis.summary %></p>
+                    <% } %>
+
+                    <% if (item.analysis && item.analysis.trends && item.analysis.trends.length) { %>
+                        <p><strong>趋势:</strong> <%= item.analysis.trends.join('、') %></p>
+                    <% } %>
+
+                    <% if (item.analysis && item.analysis.bestPractices && item.analysis.bestPractices.length) { %>
+                        <p><strong>最佳实践:</strong> <%= item.analysis.bestPractices.join('、') %></p>
+                    <% } %>
+
+                    <% if (item.analysis && item.analysis.antiPatterns && item.analysis.antiPatterns.length) { %>
+                        <p><strong>反模式:</strong> <%= item.analysis.antiPatterns.join('、') %></p>
+                    <% } %>
+
+                    <% if (item.analysis && item.analysis.openQuestions && item.analysis.openQuestions.length) { %>
+                        <p><strong>开放问题:</strong> <%= item.analysis.openQuestions.join('、') %></p>
+                    <% } %>
+
+                    <% if (item.analysis && item.analysis.tooling && item.analysis.tooling.length) { %>
+                        <p><strong>工具/框架:</strong> <%= item.analysis.tooling.join('、') %></p>
+                    <% } %>
+
+                    <% if (item.analysis && item.analysis.topics && item.analysis.topics.length) { %>
+                        <div style="margin-top: 14px;">
+                            <div class="section-title">主题详情</div>
+                            <div class="stats-details">
+                                <% item.analysis.topics.forEach(topic => { %>
+                                    <div class="stats-section">
+                                        <h2><%= topic.title %></h2>
+                                        <% if (topic.description) { %>
+                                            <p><%= topic.description %></p>
+                                        <% } %>
+                                        <% if (topic.keyPoints && topic.keyPoints.length) { %>
+                                            <p><strong>关键要点:</strong> <%= topic.keyPoints.join('、') %></p>
+                                        <% } %>
+                                        <% if (topic.actions && topic.actions.length) { %>
+                                            <p><strong>可执行建议:</strong> <%= topic.actions.join('、') %></p>
+                                        <% } %>
+                                        <% if (topic.risks && topic.risks.length) { %>
+                                            <p><strong>风险/争议:</strong> <%= topic.risks.join('、') %></p>
+                                        <% } %>
+                                        <% if (topic.keywords && topic.keywords.length) { %>
+                                            <p><strong>关键词:</strong> <%= topic.keywords.join('、') %></p>
+                                        <% } %>
+                                        <% if (topic.relatedArticles && topic.relatedArticles.length) { %>
+                                            <ul>
+                                                <% topic.relatedArticles.forEach(article => { %>
+                                                    <li>
+                                                        <span><%= article.title %></span>
+                                                        <% if (article.source) { %>
+                                                            <span style="color: #5b6b7a;">（<%= article.source %>）</span>
+                                                        <% } %>
+                                                    </li>
+                                                <% }) %>
+                                            </ul>
+                                        <% } %>
+                                    </div>
+                                <% }) %>
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <div class="panel">
+                <p>尚未发现可用的分析报告。请先生成一篇博客或执行分析任务。</p>
+            </div>
+        <% } %>
+    </div>
+</body>
+</html>

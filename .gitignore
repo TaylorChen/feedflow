@@ -1,0 +1,48 @@
+# 忽略 node_modules
+node_modules/
+
+# 忽略临时文件和缓存
+*.tmp
+*.temp
+.cache/
+.tmp/
+
+# 忽略执行过程中产生的数据
+data/articles/raw/
+data/articles/processed/
+data/reports/
+data/metadata.json
+
+# 忽略输出目录
+output/
+images/
+temp/
+
+# 忽略任务完成文件
+*.completed
+task_*.txt
+project_complete.txt
+
+# 忽略系统文件
+.DS_Store
+Thumbs.db
+
+# 忽略环境变量文件
+.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+data
+.tasks
+rss_origin
+CLAUDE.md
+.claude/
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+rss.json

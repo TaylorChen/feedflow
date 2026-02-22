@@ -1,0 +1,47 @@
+{
+  "name": "feedflow",
+  "version": "1.0.0",
+  "description": "技术文章聚合与博客生成系统",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index-v2.js start",
+    "start:v1": "node src/index.js",
+    "fetch": "node src/index-v2.js fetch",
+    "analyze": "node src/index-v2.js analyze",
+    "generate": "node src/index-v2.js generate",
+    "stats": "node src/index-v2.js stats",
+    "report": "node src/index-v2.js report",
+    "cleanup": "node src/index-v2.js cleanup",
+    "config": "node src/index-v2.js config",
+    "help": "node src/index-v2.js help",
+    "server": "node src/server.js"
+  },
+  "keywords": [
+    "rss",
+    "blog",
+    "jekyll",
+    "technology",
+    "aggregator"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/claude-code": "^2.1.44",
+    "@anthropic-ai/sdk": "^0.32.1",
+    "axios": "^1.7.9",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.22.1",
+    "http-proxy-agent": "^7.0.2",
+    "https-proxy-agent": "^7.0.4",
+    "socks-proxy-agent": "^8.0.3",
+    "multer": "^2.0.2",
+    "mysql2": "^3.17.2",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.37.3"
+  }
+}

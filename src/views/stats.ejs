@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FeedFlow - 统计信息</title>
+    <link rel="stylesheet" href="/v3.css">
+</head>
+<body class="page page-stats">
+    <div class="container">
+        <!-- 导航栏 -->
+        <nav class="navbar">
+            <div class="navbar-content">
+                <a href="/" class="navbar-brand">
+                    <span>📰</span>
+                    <span>FeedFlow</span>
+                </a>
+                <ul class="navbar-nav">
+                    <li><a href="/">首页</a></li>
+                    <li><a href="/stats" class="active">统计信息</a></li>
+                    <li><a href="/analysis">AI 分析</a></li>
+                    <li><a href="/config">系统配置</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- 页面标题 -->
+        <div class="page-header">
+            <div class="eyebrow">统计概览</div>
+            <h1 class="page-title">文章与来源分布</h1>
+            <p class="page-subtitle">查看系统文章数据与分布情况</p>
+        </div>
+
+        <!-- 错误提示 -->
+        <% if (error) { %>
+            <div class="error">
+                <strong>错误:</strong> <%= error %>
+            </div>
+        <% } %>
+
+        <!-- 统计信息区域 -->
+        <% if (stats) { %>
+            <div class="stats-container">
+                <div class="stat-card" id="total-articles-card">
+                    <h3>总文章数</h3>
+                    <div class="value" id="total-articles"><%= stats.totalArticles %></div>
+                </div>
+                <div class="stat-card" id="processed-articles-card">
+                    <h3>已处理</h3>
+                    <div class="value" id="processed-articles"><%= stats.processedArticles %></div>
+                    <div class="percentage positive">
+                        <%= ((stats.processedArticles / stats.totalArticles) * 100).toFixed(1) %>%
+                    </div>
+                </div>
+                <div class="stat-card" id="unprocessed-articles-card">
+                    <h3>未处理</h3>
+                    <div class="value" id="unprocessed-articles"><%= stats.unprocessedArticles %></div>
+                    <div class="percentage negative">
+                        <%= ((stats.unprocessedArticles / stats.totalArticles) * 100).toFixed(1) %>%
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-details">
+                <!-- 主题分布 -->
+                <div class="stats-section">
+                    <h2>🎯 主题分布</h2>
+                    <ul id="topic-distribution">
+                        <% stats.topicDistribution.forEach(topic => { %>
+                            <li>
+                                <span class="label"><%= topic.topic %></span>
+                                <span class="count"><%= topic.count %>篇</span>
+                            </li>
+                        <% }); %>
+                    </ul>
+                </div>
+
+                <!-- 来源分布 -->
+                <div class="stats-section">
+                    <h2>📈 来源分布</h2>
+                    <ul id="source-distribution">
+                        <% stats.sourceDistribution.forEach(source => { %>
+                            <li>
+                                <span class="label"><%= source.source %></span>
+                                <span class="count"><%= source.count %>篇</span>
+                            </li>
+                        <% }); %>
+                    </ul>
+                </div>
+
+                <!-- 内容长度分布 -->
+                <div class="stats-section">
+                    <h2>📝 内容长度分布</h2>
+                    <ul id="length-distribution">
+                        <% Object.entries(stats.lengthDistribution).forEach(([category, count]) => { %>
+                            <li>
+                                <span class="label"><%= category %></span>
+                                <span class="count"><%= count %>篇</span>
+                            </li>
+                        <% }); %>
+                    </ul>
+                </div>
+            </div>
+        <% } %>
+
+        <!-- 刷新按钮 -->
+        <div style="text-align: center; margin-top: 30px;">
+            <button id="btn-refresh-stats" class="btn btn-primary">
+                <span>🔄</span>
+                <span>刷新统计</span>
+            </button>
+        </div>
+
+        <!-- 加载状态 -->
+        <div class="loading" id="loading">
+            <p>正在加载统计信息...</p>
+        </div>
+    </div>
+
+    <script>
+        // 刷新统计信息
+        document.getElementById('btn-refresh-stats').addEventListener('click', async () => {
+            const loading = document.getElementById('loading');
+            const button = document.getElementById('btn-refresh-stats');
+
+            loading.classList.add('active');
+            button.disabled = true;
+
+            try {
+                const response = await fetch('/api/stats');
+                if (response.ok) {
+                    const newStats = await response.json();
+                    window.location.reload();
+                } else {
+                    alert('刷新统计信息失败');
+                }
+            } catch (error) {
+                console.error('刷新统计信息失败:', error);
+                alert('刷新统计信息失败');
+            } finally {
+                loading.classList.remove('active');
+                button.disabled = false;
+            }
+        });
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('统计信息页面已加载');
+        });
+    </script>
+</body>
+</html>
